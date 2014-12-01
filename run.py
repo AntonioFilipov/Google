@@ -1,8 +1,7 @@
-# from sqlalchemy import create_engine
-# from sqlalchemy.orm import Session
-# from website import Website
-#from connect import Base
-import time
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
+from website import Website
+from connect import Base
 #import urlparse
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
@@ -17,7 +16,7 @@ def visited_url(page):
     visited_urls.append(page)
 
 
-def page_crawer(domein, domein_length, page):
+def page_crawer(session, domein, domein_length, page):
     websites = []
     sub_pages = []
     r = requests.get(page)
@@ -25,26 +24,64 @@ def page_crawer(domein, domein_length, page):
     soup = BeautifulSoup(html)
 
     for link in soup.find_all('a'):
-        if link.get('href') is not None:
+        if link.get('href') is not None and '#' not in link.get('href'):
             websites.append(link.get('href'))
     for item in websites:
-        #print ('{}++', item)
         if item[:domein_length] != domein and item[:4] != 'http':
             a = urljoin(domein, item)
             sub_pages.append(a)
 
     for pages in sub_pages:
+        description = get_description(soup)
+        title = get_title(soup)
+        page_domein = get_domein(domein, pages)
         if pages not in visited_urls:
             print(pages)
             visited_urls.append(pages)
-            page_crawer(domein, domein_length, pages)
+            push_to_database(session, pages, description, title, page_domein)
+            page_crawer(session, domein, domein_length, pages)
+
+
+def push_to_database(session, site, page_description, page_title, page_domein):
+    my_site = Website(url=site, title=page_title, description=page_description, domain=page_domein, pages_count=3, html_version="")
+    session.add(my_site)
+    session.commit()
+
+
+def get_description(soup):
+    for link in soup.find_all('meta'):
+        if link.get('name') == "description":
+            if link.get('content') != "":
+                return link.get('content')
+        else:
+            return "None"
+
+
+def get_title(soup):
+    if soup.find('title') is not None:
+        for link in soup.find('title'):
+            return link
+
+
+def get_domein(domein, page):
+    if page[:len(domein)] == domein:
+        return domein
+
+
+
+
+
+
 
 def main():
-    domein = 'http://hackbulgaria.com'
+    domein = 'http://blog.hackbulgaria.com/'
     domein_length = len(domein)
     r = requests.get(domein)
     html = r.text
     soup = BeautifulSoup(html)
+    engine = create_engine("sqlite:///cinema.db")
+    Base.metadata.create_all(engine)
+    session = Session(bind=engine)
 
     for link in soup.find_all('a'):
         basic_websites.append(link.get('href'))
@@ -65,12 +102,8 @@ def main():
         print("=========================")
         if sub_page not in visited_urls:
             visited_url(sub_page)
-            page_crawer(domein, domein_length, sub_page)
-        # if count == 3:
-        #     break
+            page_crawer(session, domein, domein_length, sub_page)
 
-    # # engine = create_engine("sqlite:///cinema.db")
-    # # Base.metadata.create_all(engine)
-    # # session = Session(bind=engine)
+
 if __name__ == '__main__':
     main()
