@@ -76,17 +76,18 @@ def get_domein(domein, page):
 
 
 def main():
-    domein = 'http://www.framar.bg/'
+    domein = input("Enter the domein in the following format: (http://hackbulgaria.com/):")
     domein_length = len(domein)
     r = requests.get(domein)
     html = r.text
     soup = BeautifulSoup(html)
-    engine = create_engine("sqlite:///cinema.db")
+    engine = create_engine("sqlite:///website.db")
     Base.metadata.create_all(engine)
     session = Session(bind=engine)
 
     for link in soup.find_all('a'):
-        basic_websites.append(link.get('href'))
+        if link.get('href') is not None and '#' not in link.get('href'):
+            basic_websites.append(link.get('href'))
 
     for item in basic_websites:
         if item[:4] != 'http':
@@ -97,10 +98,8 @@ def main():
     visited_urls.append(domein+'/')
     visited_urls.append(domein+'#')
     visited_urls.append(domein)
-    # count = 0
     for sub_page in sub_domein_pages:
-    #     count += 1
-        #print (sub_page)
+        print (sub_page)
         if sub_page not in visited_urls:
             visited_url(sub_page)
             page_crawer(session, domein, domein_length, sub_page)
