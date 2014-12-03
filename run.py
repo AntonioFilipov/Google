@@ -27,9 +27,11 @@ def page_crawer(session, domein, domein_length, page):
         if link.get('href') is not None and '#' not in link.get('href'):
             websites.append(link.get('href'))
     for item in websites:
-        if item[:domein_length] != domein and item[:4] != 'http':
+        if item[:4] != 'http':
             a = urljoin(domein, item)
             sub_pages.append(a)
+        if item[:domein_length] == domein:
+            sub_pages.append(item)
 
     for pages in sub_pages:
         description = get_description(soup)
@@ -74,7 +76,7 @@ def get_domein(domein, page):
 
 
 def main():
-    domein = 'http://blog.hackbulgaria.com/'
+    domein = 'http://www.framar.bg/'
     domein_length = len(domein)
     r = requests.get(domein)
     html = r.text
@@ -87,19 +89,18 @@ def main():
         basic_websites.append(link.get('href'))
 
     for item in basic_websites:
-        #print (item)
-        if len(item) > 1:
-            if item[:domein_length] != domein and item[:4] != 'http':
-                sub_domein_pages.append(domein+item)
+        if item[:4] != 'http':
+            a = urljoin(domein, item)
+            sub_domein_pages.append(a)
+        if item[:domein_length] == domein:
+            sub_domein_pages.append(item)
     visited_urls.append(domein+'/')
     visited_urls.append(domein+'#')
     visited_urls.append(domein)
-    count = 0
+    # count = 0
     for sub_page in sub_domein_pages:
-        print("=========================")
-        print (sub_page)
-        count += 1
-        print("=========================")
+    #     count += 1
+        #print (sub_page)
         if sub_page not in visited_urls:
             visited_url(sub_page)
             page_crawer(session, domein, domein_length, sub_page)
